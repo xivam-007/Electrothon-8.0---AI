@@ -42,6 +42,7 @@ class MoveRequest(BaseModel):
     pickup_date: str = "soon"
     pickup_time: str = "morning"
     # 👇 NEW: We need Node.js to send the mover's stats for the Risk Engine
+    moverId: str
     rating: float
     total_reviews: int 
 
@@ -56,6 +57,7 @@ async def trigger_negotiation(move_details: MoveRequest):
     current_move_data['calculated_price'] = move_details.target_price
     current_move_data['rating'] = move_details.rating
     current_move_data['total_reviews'] = move_details.total_reviews
+    current_move_data['moverId'] = move_details.moverId
     
     # Base prompt
     dynamic_prompt = f"""
@@ -93,7 +95,7 @@ async def trigger_negotiation(move_details: MoveRequest):
     
     try:
         call = client.calls.create(
-            to='+917217843077', 
+            to='+917366883380', 
             from_='+18566363795',
             url=f'{MY_PYTHON_NGROK_URL}/twiml',
             status_callback=f'{MY_PYTHON_NGROK_URL}/call_status',
@@ -109,7 +111,7 @@ async def trigger_negotiation(move_details: MoveRequest):
 @app.post("/twiml")
 async def get_twiml(request: Request):
     response = VoiceResponse()
-    greeting = f"Namaste! Main Makkhan Move se call kar rahi hoon. Ek shifting requirement discuss karni thi aapse."
+    greeting = f"Namaste! Main Makkhan Move se call kar rahi hoon. Ek shifting requirement discuss karni thi."
     chat_history.append(AIMessage(content=greeting))
     
     gather = Gather(input="speech", action="/process_speech", language="hi-IN", speechTimeout="auto")
@@ -198,7 +200,7 @@ async def call_status(CallStatus: str = Form(None)):
                     "deliveryTime": negotiated_time, # Sending negotiated time back!
                     "riskScore": round(risk_score, 2),
                     "isSafe": is_safe,
-                    "moverId": "asdfas"
+                    "moverId": current_move_data.get('moverId') # You can also generate a unique ID for the mover if you want
                 }
                 
                 requests.post(NODE_WEBHOOK_URL, json=payload)
